@@ -1,12 +1,14 @@
 package buildah
 
 import (
-	"context"
 	"flag"
+	"io"
+	"log/slog"
 	"os"
 	"testing"
 
 	"github.com/sirupsen/logrus"
+	lslog "github.com/sirupsen/logrus/hooks/slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	imagetypes "go.podman.io/image/v5/types"
@@ -35,7 +37,10 @@ func TestMain(m *testing.M) {
 	if debug && level < logrus.DebugLevel {
 		level = logrus.DebugLevel
 	}
+	logrus.SetOutput(io.Discard)
+	logrus.AddHook(lslog.NewHook(slog.Default(), nil))
 	logrus.SetLevel(level)
+	slog.SetLogLoggerLevel(lslog.Level(level).Level())
 	os.Exit(m.Run())
 }
 
@@ -46,7 +51,7 @@ func TestOpenBuilderCommonBuildOpts(t *testing.T) {
 	// or builder must enable sometime of locking mechanism i.e if
 	// routine is creating Builder other's must wait for it.
 	// Tracked here: https://github.com/containers/buildah/issues/5967
-	ctx := context.TODO()
+	ctx := t.Context()
 	store, err := storage.GetStore(types.StoreOptions{
 		RunRoot:         t.TempDir(),
 		GraphRoot:       t.TempDir(),
